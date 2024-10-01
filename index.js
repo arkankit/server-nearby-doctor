@@ -5,6 +5,7 @@ import pg from "pg";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
+import axios from "axios";
 
 const port = 3000;
 const saltRounds = 10;
@@ -160,6 +161,28 @@ app.get("/getDetails", async (req, res) => {
     } catch (err) {
       res.json({errorMessage : "Could not fetch user details"});
     }
+  }
+});
+
+app.get("/api/autocomplete",async (req, res) => {
+  const {input} = req.query; // destructuring params object for input property
+  const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
+
+  try{
+    const response = await axios.get(
+      "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+      {
+        params: {
+          input: input,
+          key: apiKey,
+        },
+      }
+    );
+    if(response.data.status === "OK"){
+      res.json(response.data);
+    }
+  } catch (err) {
+    res.status(500).json({error : "Error fetching data"});
   }
 });
 
