@@ -60,11 +60,11 @@ app.post("/register", async (req, res) => {
             "Insert into users (username, password) values ($1, $2) returning *",
             [userName, hash]
           );
-            if (result.rows.length > 0) {
-              req.session.userid = result.rows[0].userid; // create current users session after successfull registration
-              console.log("User registered with userID:", req.session.userid);
-              return res.json({ registerSuccess: true });
-            }
+          if (result.rows.length > 0) {
+            req.session.userid = result.rows[0].userid; // create current users session after successfull registration
+            console.log("User registered with userID:", req.session.userid);
+            return res.json({ registerSuccess: true });
+          }
         }
       });
     }
@@ -78,7 +78,7 @@ app.post("/login", async (req, res) => {
 
   try {
     const result = await db.query("Select * from users where username = $1", [
-      username
+      username,
     ]);
     if (result.rows.length > 0) {
       const storedHashedPassword = result.rows[0].password;
@@ -102,48 +102,57 @@ app.post("/login", async (req, res) => {
 app.post("/details", async (req, res) => {
   console.log("saving details for user:", req.session.userid);
   const userID = req.session.userid; // get the current user
-  const {firstName, lastName, insurerCode} = req.body;
+  const { firstName, lastName, insurerCode } = req.body;
 
-  try{
-    const result = await db.query("update users set fname=$1, lname=$2, user_plan_code=$3 where userid=$4;", [firstName, lastName, insurerCode, userID]);
+  try {
+    const result = await db.query(
+      "update users set fname=$1, lname=$2, user_plan_code=$3 where userid=$4;",
+      [firstName, lastName, insurerCode, userID]
+    );
 
-    if(result.rowCount > 0){
-      res.json({saved : true});
+    if (result.rowCount > 0) {
+      res.json({ saved: true });
     }
-  } catch (err){
+  } catch (err) {
     console.log("Error savings details", err);
   }
 });
 
-app.post("/saveAddressDetails" , async(req, res) => {
-  console.log("Saving user latitude, longitute and address recieved from frontend.");
+app.post("/saveAddressDetails", async (req, res) => {
+  console.log(
+    "Saving user latitude, longitute and address recieved from frontend."
+  );
   const userID = req.session.userid;
-  const {latitude, longitude, readableAddress} = req.body;
+  const { latitude, longitude, readableAddress } = req.body;
 
-  try{
-    const result = await db.query("update users set userlat=$1, userlong=$2, user_address=$3 where userid=$4;", [latitude, longitude, readableAddress, userID]);
+  try {
+    const result = await db.query(
+      "update users set userlat=$1, userlong=$2, user_address=$3 where userid=$4;",
+      [latitude, longitude, readableAddress, userID]
+    );
 
-    if(result.rowCount > 0){
-      res.json({addrStored : true});
+    if (result.rowCount > 0) {
+      res.json({ addrStored: true });
     }
-  }
-  catch (err){
-    res.json({addrStored : false});
+  } catch (err) {
+    res.json({ addrStored: false });
     console.log("Error saving user address details:", err);
   }
 });
 
-app.post("/doctorsBySpeciality", async(req, res) => {
+app.post("/doctorsBySpeciality", async (req, res) => {
   const userChosenSpeciality = req.body.chosenSpeciality;
-  try{
-    const result = await db.query("select * from doctors where doc_speciality=$1;", [userChosenSpeciality]);
-    if(result.rowCount > 0){
-      res.json({ filteredDoctorsArray : result.rows});
+  try {
+    const result = await db.query(
+      "select * from doctors where doc_speciality=$1;",
+      [userChosenSpeciality]
+    );
+    if (result.rowCount > 0) {
+      res.json({ filteredDoctorsArray: result.rows });
+    } else {
+      res.json({ noDocsFound: true });
     }
-    else {
-      res.json({noDocsFound : true });
-    }
-  } catch (err){
+  } catch (err) {
     console.log("Error fetching filtered doctors data:", err);
   }
 });
@@ -155,47 +164,71 @@ app.get("/logout", (req, res) => {
 
 app.get("/getDetails", async (req, res) => {
   if (req.session.userid) {
-    try{
-      const response = await db.query("select * from users where userid=$1;",[req.session.userid]);
+    try {
+      const response = await db.query("select * from users where userid=$1;", [
+        req.session.userid,
+      ]);
       res.json(response.rows[0]);
     } catch (err) {
-      res.json({errorMessage : "Could not fetch user details"});
+      res.json({ errorMessage: "Could not fetch user details" });
     }
   }
 });
 
-app.get("/api/autocomplete",async (req, res) => {
-  const {input} = req.query; // destructuring params object for input property
+app.get("/api/autocomplete", async (req, res) => {
+  const { input, placeID } = req.query; // destructuring params object for input and placeID property
   const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
-
-  try{
-    const response = await axios.get(
-      "https://maps.googleapis.com/maps/api/place/autocomplete/json",
-      {
-        params: {
-          input: input,
-          key: apiKey,
-        },
+  if (input) { // if req comes with input address data, call for suggestions
+    try {
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+        {
+          params: {
+            input: input,
+            key: apiKey,
+          },
+        }
+      );
+      if (response.data.status === "OK") {
+        console.log("called places api and got suggestions data");
+        res.json(response.data); // sending back the predictions object (suggestions)
       }
-    );
-    if(response.data.status === "OK"){
-      res.json(response.data);
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching suggestions" });
     }
-  } catch (err) {
-    res.status(500).json({error : "Error fetching data"});
+  }
+  else if(placeID){ // if req comes with place_id data, call for lat lng of that place_id
+    try {
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/place/details/json",
+        {
+          params: {
+            place_id: placeID,
+            key: apiKey,
+          },
+        }
+      );
+      if (response.data.status === "OK") {
+        console.log("called places api and got lat lng data");
+        res.json(response.data); // sending back result data from api for the place id fed
+      }
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching lat lng from place_id" });
+    }
+  } else {
+    console.log("Neither PlaceID nor input were received");
+    res.status(400).json({ error: "PlaceID or input parameter is required" });
   }
 });
 
 app.get("/session", (req, res) => {
-  if(req.session.userid){
+  if (req.session.userid) {
     console.log("session active with userid", req.session.userid);
-    res.json({sessionActive : true});
-  }
-  else{
-    res.json({sessionActive : false});
+    res.json({ sessionActive: true });
+  } else {
+    res.json({ sessionActive: false });
     console.log("No session active");
   }
-  
 });
 
 app.listen(port, () => {
