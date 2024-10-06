@@ -169,6 +169,7 @@ app.get("/getDetails", async (req, res) => {
         req.session.userid,
       ]);
       res.json(response.rows[0]);
+      console.log("User details fetched");
     } catch (err) {
       res.json({ errorMessage: "Could not fetch user details" });
     }
