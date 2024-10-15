@@ -2,7 +2,7 @@ import express, { response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import pg from "pg";
-import bcrypt from "bcrypt";
+import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
@@ -99,6 +99,87 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.post("/resetUnamePwd", async (req, res) => {
+  const userID = req.session.userid;
+  const { username, password, existingPassword } = req.body;
+  if (username !== undefined && password === undefined) {
+    // when only username is being recieved
+    try {
+      const result = await db.query(
+        "update users set username=$1 where userid=$2;",
+        [username, userID]
+      );
+      if (result.rowCount > 0) {
+        console.log(`Updated username for user: ${userID}`);
+        res.json({ usernameUpdated: true });
+      }
+    } catch (err) {
+      console.log(
+        `Error in contacting db for username update of user: ${userID}`
+      );
+    }
+  }
+
+  if (username === undefined && password !== undefined) {
+    // when only password is being recieved
+    bcrypt.compare(password, existingPassword, async (err, same) => {
+      if (same) {
+        res.json({ passwordSame: true, passwordUpdated: false });
+      } else {
+        bcrypt.hash(password, saltRounds, async (err, hash) => {
+          if (err) {
+            console.log("Error hashing password:", err);
+          } else {
+            const result = await db.query(
+              "update users set password=$1 where userid=$2;",
+              [hash, userID]
+            );
+            if (result.rowCount > 0) {
+              console.log(`Updated password for user: ${userID}`);
+              res.json({ passwordSame: false, passwordUpdated: true, updatedPassword: hash });
+            }
+          }
+        });
+      }
+    });
+  }
+
+  if (username !== undefined && password !== undefined) {
+    // when both username and password are being recieved
+    bcrypt.compare(password, existingPassword, async (err, same) => {
+      if (same) { // password is same only update username
+        try {
+          const result = await db.query(
+            "update users set username=$1 where userid=$2;",
+            [username, userID]
+          );
+          if (result.rowCount > 0) {
+            console.log(`Updated username for user: ${userID}`);
+            res.json({ passwordSame: true, usernameSame: false });
+          }
+        } catch (err) {
+          console.log(`Error updating new username for user: ${userID}`);
+        }
+      } else {
+        bcrypt.hash(password, saltRounds, async (err, hash) => {
+          if (err) {
+            console.log("Error hashing password:", err);
+          } else {
+            const result = await db.query(
+              "update users set username=$1, password=$2 where userid=$3;",
+              [username, hash, userID]
+            );
+            if (result.rowCount > 0) {
+              console.log(`Updated username and password for user: ${userID}`);
+              res.json({ passwordSame: false, usernameSame: false, updatedPassword: hash});
+            }
+          }
+        });
+      }
+    });
+  }
+});
+
 app.post("/details", async (req, res) => {
   console.log("saving details for user:", req.session.userid);
   const userID = req.session.userid; // get the current user
@@ -179,7 +260,8 @@ app.get("/getDetails", async (req, res) => {
 app.get("/api/autocomplete", async (req, res) => {
   const { input, placeID } = req.query; // destructuring params object for input and placeID property
   const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
-  if (input) { // if req comes with input address data, call for suggestions
+  if (input) {
+    // if req comes with input address data, call for suggestions
     try {
       const response = await axios.get(
         "https://maps.googleapis.com/maps/api/place/autocomplete/json",
@@ -197,8 +279,8 @@ app.get("/api/autocomplete", async (req, res) => {
     } catch (err) {
       res.status(500).json({ error: "Error fetching suggestions" });
     }
-  }
-  else if(placeID){ // if req comes with place_id data, call for lat lng of that place_id
+  } else if (placeID) {
+    // if req comes with place_id data, call for lat lng of that place_id
     try {
       const response = await axios.get(
         "https://maps.googleapis.com/maps/api/place/details/json",
