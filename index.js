@@ -102,8 +102,8 @@ app.post("/login", async (req, res) => {
 app.post("/resetUnamePwd", async (req, res) => {
   const userID = req.session.userid;
   const { username, password, existingPassword } = req.body;
-  if (username !== undefined && password === undefined) {
-    // when only username is being recieved
+
+  if(username !== undefined && password === undefined){
     try {
       const result = await db.query(
         "update users set username=$1 where userid=$2;",
@@ -118,50 +118,14 @@ app.post("/resetUnamePwd", async (req, res) => {
         `Error in contacting db for username update of user: ${userID}`
       );
     }
-  }
-
-  if (username === undefined && password !== undefined) {
-    // when only password is being recieved
+  } else if(username !== undefined && password !== undefined) {
     bcrypt.compare(password, existingPassword, async (err, same) => {
-      if (same) {
-        res.json({ passwordSame: true, passwordUpdated: false });
+      if(same){
+        // if password is same then
+        res.json({ usernamePasswordUpdated : false});
       } else {
-        bcrypt.hash(password, saltRounds, async (err, hash) => {
-          if (err) {
-            console.log("Error hashing password:", err);
-          } else {
-            const result = await db.query(
-              "update users set password=$1 where userid=$2;",
-              [hash, userID]
-            );
-            if (result.rowCount > 0) {
-              console.log(`Updated password for user: ${userID}`);
-              res.json({ passwordSame: false, passwordUpdated: true, updatedPassword: hash });
-            }
-          }
-        });
-      }
-    });
-  }
-
-  if (username !== undefined && password !== undefined) {
-    // when both username and password are being recieved
-    bcrypt.compare(password, existingPassword, async (err, same) => {
-      if (same) { // password is same only update username
-        try {
-          const result = await db.query(
-            "update users set username=$1 where userid=$2;",
-            [username, userID]
-          );
-          if (result.rowCount > 0) {
-            console.log(`Updated username for user: ${userID}`);
-            res.json({ passwordSame: true, usernameSame: false });
-          }
-        } catch (err) {
-          console.log(`Error updating new username for user: ${userID}`);
-        }
-      } else {
-        bcrypt.hash(password, saltRounds, async (err, hash) => {
+        // if password is not same then
+        bcrypt.hash(password, saltRounds, async(err, hash) => {
           if (err) {
             console.log("Error hashing password:", err);
           } else {
@@ -171,13 +135,115 @@ app.post("/resetUnamePwd", async (req, res) => {
             );
             if (result.rowCount > 0) {
               console.log(`Updated username and password for user: ${userID}`);
-              res.json({ passwordSame: false, usernameSame: false, updatedPassword: hash});
+              res.json({ usernamePasswordUpdated : true });
+            }
+          }
+        });
+      }
+    });
+
+  } else if (username === undefined && password !== undefined){
+    bcrypt.compare(password, existingPassword, async (err, same) => {
+      if(same){
+        // if password is same then
+        res.json({ passwordUpdated : false});
+      } else {
+        // if password is not same then
+        bcrypt.hash(password, saltRounds, async(err, hash) => {
+          if (err) {
+            console.log("Error hashing password:", err);
+          } else {
+            const result = await db.query(
+              "update users set password=$1 where userid=$2;",
+              [hash, userID]
+            );
+            if (result.rowCount > 0) {
+              console.log(`Updated username and password for user: ${userID}`);
+              res.json({ passwordUpdated : true });
             }
           }
         });
       }
     });
   }
+
+
+  // if (username !== undefined && password === undefined) {
+  //   // when only username is being recieved
+  //   try {
+  //     const result = await db.query(
+  //       "update users set username=$1 where userid=$2;",
+  //       [username, userID]
+  //     );
+  //     if (result.rowCount > 0) {
+  //       console.log(`Updated username for user: ${userID}`);
+  //       res.json({ usernameUpdated: true });
+  //     }
+  //   } catch (err) {
+  //     console.log(
+  //       `Error in contacting db for username update of user: ${userID}`
+  //     );
+  //   }
+  // }
+
+  // if (username === undefined && password !== undefined) {
+  //   // when only password is being recieved
+  //   bcrypt.compare(password, existingPassword, async (err, same) => {
+  //     if (same) {
+  //       res.json({ passwordSame: true, passwordUpdated: false });
+  //     } else {
+  //       bcrypt.hash(password, saltRounds, async (err, hash) => {
+  //         if (err) {
+  //           console.log("Error hashing password:", err);
+  //         } else {
+  //           const result = await db.query(
+  //             "update users set password=$1 where userid=$2;",
+  //             [hash, userID]
+  //           );
+  //           if (result.rowCount > 0) {
+  //             console.log(`Updated password for user: ${userID}`);
+  //             res.json({ passwordSame: false, passwordUpdated: true, updatedPassword: hash });
+  //           }
+  //         }
+  //       });
+  //     }
+  //   });
+  // }
+
+  // if (username !== undefined && password !== undefined) {
+  //   // when both username and password are being recieved
+  //   bcrypt.compare(password, existingPassword, async (err, same) => {
+  //     if (same) { // password is same only update username
+  //       try {
+  //         const result = await db.query(
+  //           "update users set username=$1 where userid=$2;",
+  //           [username, userID]
+  //         );
+  //         if (result.rowCount > 0) {
+  //           console.log(`Updated username for user: ${userID}`);
+  //           res.json({ passwordSame: true, usernameSame: false });
+  //         }
+  //       } catch (err) {
+  //         console.log(`Error updating new username for user: ${userID}`);
+  //       }
+  //     } else {
+  //       bcrypt.hash(password, saltRounds, async (err, hash) => {
+  //         if (err) {
+  //           console.log("Error hashing password:", err);
+  //         } else {
+  //           const result = await db.query(
+  //             "update users set username=$1, password=$2 where userid=$3;",
+  //             [username, hash, userID]
+  //           );
+  //           if (result.rowCount > 0) {
+  //             console.log(`Updated username and password for user: ${userID}`);
+  //             res.json({ passwordSame: false, usernameSame: false, updatedPassword: hash});
+  //           }
+  //         }
+  //       });
+  //     }
+  //   });
+  // }
 });
 
 app.post("/details", async (req, res) => {
