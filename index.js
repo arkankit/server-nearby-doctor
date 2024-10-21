@@ -6,18 +6,27 @@ import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
+import RedisStore from "connect-redis";
+import redis from "redis";
 
 const port = 3000;
 const saltRounds = 10;
 const app = express();
 dotenv.config();
 
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+  legacyMode: true
+});
+redisClient.connect().catch(console.error);
+
 app.use(
   session({
+    store: new RedisStore({ client : redisClient}),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // set to false if using http(local env) and not https, else true for prod https
+    cookie: { secure: true }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
 
