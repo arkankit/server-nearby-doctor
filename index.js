@@ -7,14 +7,14 @@ import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
 import RedisStore from "connect-redis";
-import redis from "redis";
+import { createClient } from "redis";
 
 const port = 3000;
 const saltRounds = 10;
 const app = express();
 dotenv.config();
 
-const redisClient = redis.createClient({
+const redisClient = createClient({
   url: process.env.REDIS_URL,
   legacyMode: true
 });
@@ -26,7 +26,7 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // set to false if using http(local env) and not https, else true for prod https
+    cookie: { secure: true, sameSite : "none", }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
 
