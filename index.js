@@ -33,7 +33,7 @@ app.use(
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://spontaneous-axolotl-120710.netlify.app",
     credentials: true, // allow credentials (cookies)
   })
 );
