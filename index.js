@@ -1,8 +1,7 @@
 import express from "express";
 import cors from "cors";
-//import bodyParser from "body-parser";
 import pg from "pg";
-//import PgSession from "connect-pg-simple";
+import PgSession from "connect-pg-simple";
 import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
@@ -30,25 +29,17 @@ const db = new pg.Client({
 
 db.connect();
 
-//const PgStore = PgSession(session);
+const PgStore = PgSession(session);
 
 app.use(
   session({
-    //store: new PgStore({pool: db, tableName: "session"}),
+    store: new PgStore({pool: db, tableName: "session"}),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: { secure: true, sameSite : 'none', }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
-
-// app.options('*', (req, res) => {
-//   res.header('Access-Control-Allow-Origin', 'https://spontaneous-axolotl-120710.netlify.app');
-//   res.header('Access-Control-Allow-Credentials', 'true');
-//   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-//   res.sendStatus(204); // No Content
-// });
 
 app.use(express.urlencoded({ extended: true }));
 
