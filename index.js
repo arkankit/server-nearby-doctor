@@ -309,6 +309,7 @@ app.get("/api/autocomplete", async (req, res) => {
 
 app.get("/session", (req, res) => {
   console.log("session data in req.session:", req.session);
+  console.log("session data in req.session.userid:", req.session.userid);
   if (req.session.userid) {
     console.log("session active with userid", req.session.userid);
     res.json({ sessionActive: true });
