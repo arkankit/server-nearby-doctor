@@ -1,7 +1,8 @@
-import express, { response } from "express";
+import express from "express";
 import cors from "cors";
 //import bodyParser from "body-parser";
 import pg from "pg";
+import PgSession from "connect-pg-simple";
 import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
@@ -9,10 +10,32 @@ import axios from "axios";
 import RedisStore from "connect-redis";
 import { createClient } from "redis";
 
+dotenv.config();
 const port = 3000;
 const saltRounds = 10;
 const app = express();
-dotenv.config();
+
+const db = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
+
+db.connect();
+
+const PgStore = PgSession(session);
+
+app.use(
+  session({
+    store: new PgStore({pool: db, tableName: "session"}),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: true, sameSite : "none", }, // set to false if using http(local env) and not https, else true for prod https
+  })
+);
 
 app.use(
   cors({
@@ -29,35 +52,9 @@ app.options('*', (req, res) => {
   res.sendStatus(204); // No Content
 });
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL,
-  legacyMode: true
-});
-redisClient.connect().catch(console.error);
-
-app.use(
-  session({
-    store: new RedisStore({ client : redisClient}),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: true, sameSite : "none", }, // set to false if using http(local env) and not https, else true for prod https
-  })
-);
-
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.json());
-
-const db = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
-
-db.connect();
 
 app.post("/register", async (req, res) => {
   const { userName, enteredPassword } = req.body;
