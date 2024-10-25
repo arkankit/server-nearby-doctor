@@ -7,8 +7,6 @@ import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
-import RedisStore from "connect-redis";
-import { createClient } from "redis";
 
 dotenv.config();
 const port = 3000;
@@ -310,6 +308,7 @@ app.get("/api/autocomplete", async (req, res) => {
 });
 
 app.get("/session", (req, res) => {
+  console.log("session data in req.session:", req.session);
   if (req.session.userid) {
     console.log("session active with userid", req.session.userid);
     res.json({ sessionActive: true });
