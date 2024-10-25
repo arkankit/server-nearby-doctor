@@ -103,7 +103,9 @@ app.post("/login", async (req, res) => {
 
       bcrypt.compare(password, storedHashedPassword, (err, same) => {
         if (same) {
+
           req.session.userid = result.rows[0].userid; // store the userid for session verification
+          console.log("User logged in with userID:", req.session.userid);
           return res.json({ success: true }); // return success as true to frontend
         } else {
           res.status(401).json({ success: false }); // return success as false to frontend
