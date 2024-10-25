@@ -14,6 +14,13 @@ const saltRounds = 10;
 const app = express();
 dotenv.config();
 
+app.use(
+  cors({
+    origin: "https://spontaneous-axolotl-120710.netlify.app",
+    credentials: true, // allow credentials (cookies)
+  })
+);
+
 const redisClient = createClient({
   url: process.env.REDIS_URL,
   legacyMode: true
@@ -31,12 +38,6 @@ app.use(
 );
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: "https://spontaneous-axolotl-120710.netlify.app",
-    credentials: true, // allow credentials (cookies)
-  })
-);
 
 app.use(express.json());
 
