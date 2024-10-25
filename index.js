@@ -101,6 +101,7 @@ app.post("/login", async (req, res) => {
 
           req.session.userid = result.rows[0].userid; // store the userid for session verification
           console.log("User logged in with userID:", req.session.userid);
+          console.log("Response headers:", res.getHeaders());
           return res.json({ success: true }); // return success as true to frontend
         } else {
           res.status(401).json({ success: false }); // return success as false to frontend
