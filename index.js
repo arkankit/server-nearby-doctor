@@ -51,6 +51,12 @@ const db = new pg.Client({
 
 db.connect();
 
+app.get("/cors-check", (req, res) => {
+  res.set("Access-Control-Allow-Origin", "https://spontaneous-axolotl-120710.netlify.app");
+  res.set("Access-Control-Allow-Credentials", "true");
+  res.send("CORS headers are set!");
+});
+
 app.post("/register", async (req, res) => {
   const { userName, enteredPassword } = req.body;
   try {
