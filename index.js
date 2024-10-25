@@ -30,7 +30,7 @@ app.use(
     store: new PgStore({pool: db, tableName: "session"}),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: { secure: true, sameSite : "none", }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
