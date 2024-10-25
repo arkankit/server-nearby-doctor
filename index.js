@@ -13,6 +13,13 @@ const port = 3000;
 const saltRounds = 10;
 const app = express();
 
+app.use(
+  cors({
+    origin: "https://spontaneous-axolotl-120710.netlify.app",
+    credentials: true, // allow credentials (cookies)
+  })
+);
+
 const db = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
@@ -32,13 +39,6 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: { secure: true, sameSite : 'none', }, // set to false if using http(local env) and not https, else true for prod https
-  })
-);
-
-app.use(
-  cors({
-    origin: "https://spontaneous-axolotl-120710.netlify.app",
-    credentials: true, // allow credentials (cookies)
   })
 );
 
