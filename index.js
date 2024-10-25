@@ -7,7 +7,6 @@ import bcrypt, { hash } from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
-import MemoryStore from "express-session/session/memory";
 
 dotenv.config();
 const port = 3000;
@@ -35,7 +34,6 @@ db.connect();
 
 app.use(
   session({
-    store: new MemoryStore(),
     //store: new PgStore({pool: db, tableName: "session"}),
     secret: process.env.SESSION_SECRET,
     resave: false,
