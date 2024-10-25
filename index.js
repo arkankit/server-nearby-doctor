@@ -31,7 +31,7 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, sameSite : "none", }, // set to false if using http(local env) and not https, else true for prod https
+    cookie: { secure: true, sameSite : 'none', }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
 
