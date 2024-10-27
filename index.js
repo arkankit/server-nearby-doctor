@@ -90,7 +90,7 @@ app.post("/login", async (req, res) => {
       bcrypt.compare(password, storedHashedPassword, (err, same) => {
         if (same) {
 
-          req.session.userid = result.rows[0].userid; // store the userid for session verification
+          res.session.userid = result.rows[0].userid; // store the userid for session verification
           console.log("User logged in with userID:", req.session.userid);
           console.log("Session set:", req.session);
           console.log("Response headers:", res.getHeaders());
