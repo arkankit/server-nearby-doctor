@@ -33,11 +33,11 @@ const PgStore = PgSession(session);
 
 app.use(
   session({
-    store: new PgStore({pool: db, tableName: "session"}),
+    store: new PgStore({ pool: db, tableName: "session" }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, sameSite : 'none', }, // set to false if using http(local env) and not https, else true for prod https
+    cookie: { secure: true, sameSite: "none" }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
 
@@ -89,18 +89,21 @@ app.post("/login", async (req, res) => {
 
       bcrypt.compare(password, storedHashedPassword, (err, same) => {
         if (same) {
-
-          req.session.userid = result.rows[0].userid; // store the userid for session verification
-          console.log("User logged in with userID:", req.session.userid);
-          console.log("Session set:", req.session);
-          console.log("Response headers:", res.getHeaders());
-          return res.json({ success: true }); // return success as true to frontend
+          req.session.userid = result.rows[0].userid;
+          req.session.save((err) => {
+            if (err) {
+              console.log("Session save error:", err);
+              return res
+                .status(500)
+                .json({ success: false, message: "Session save error" });
+            }
+            console.log("User logged in with userID:", req.session.userid);
+            return res.json({ success: true });
+          });
         } else {
-          res.status(401).json({ success: false }); // return success as false to frontend
+          res.status(401).json({ success: false });
         }
       });
-    } else {
-      res.status(401).json({ success: false }); // return success as false for user not found
     }
   } catch (e) {
     console.log("Unable to intiate login:", e);
@@ -111,7 +114,7 @@ app.post("/resetUnamePwd", async (req, res) => {
   const userID = req.session.userid;
   const { username, password, existingPassword } = req.body;
 
-  if(username !== undefined && password === undefined){
+  if (username !== undefined && password === undefined) {
     try {
       const result = await db.query(
         "update users set username=$1 where userid=$2;",
@@ -126,14 +129,14 @@ app.post("/resetUnamePwd", async (req, res) => {
         `Error in contacting db for username update of user: ${userID}`
       );
     }
-  } else if(username !== undefined && password !== undefined) {
+  } else if (username !== undefined && password !== undefined) {
     bcrypt.compare(password, existingPassword, async (err, same) => {
-      if(same){
+      if (same) {
         // if password is same then
-        res.json({ usernamePasswordUpdated : false});
+        res.json({ usernamePasswordUpdated: false });
       } else {
         // if password is not same then
-        bcrypt.hash(password, saltRounds, async(err, hash) => {
+        bcrypt.hash(password, saltRounds, async (err, hash) => {
           if (err) {
             console.log("Error hashing password:", err);
           } else {
@@ -143,21 +146,20 @@ app.post("/resetUnamePwd", async (req, res) => {
             );
             if (result.rowCount > 0) {
               console.log(`Updated username and password for user: ${userID}`);
-              res.json({ usernamePasswordUpdated : true });
+              res.json({ usernamePasswordUpdated: true });
             }
           }
         });
       }
     });
-
-  } else if (username === undefined && password !== undefined){
+  } else if (username === undefined && password !== undefined) {
     bcrypt.compare(password, existingPassword, async (err, same) => {
-      if(same){
+      if (same) {
         // if password is same then
-        res.json({ passwordUpdated : false});
+        res.json({ passwordUpdated: false });
       } else {
         // if password is not same then
-        bcrypt.hash(password, saltRounds, async(err, hash) => {
+        bcrypt.hash(password, saltRounds, async (err, hash) => {
           if (err) {
             console.log("Error hashing password:", err);
           } else {
@@ -167,7 +169,7 @@ app.post("/resetUnamePwd", async (req, res) => {
             );
             if (result.rowCount > 0) {
               console.log(`Updated username and password for user: ${userID}`);
-              res.json({ passwordUpdated : true });
+              res.json({ passwordUpdated: true });
             }
           }
         });
