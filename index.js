@@ -89,21 +89,18 @@ app.post("/login", async (req, res) => {
 
       bcrypt.compare(password, storedHashedPassword, (err, same) => {
         if (same) {
-          req.session.userid = result.rows[0].userid;
-          req.session.save((err) => {
-            if (err) {
-              console.log("Session save error:", err);
-              return res
-                .status(500)
-                .json({ success: false, message: "Session save error" });
-            }
-            console.log("User logged in with userID:", req.session.userid);
-            return res.json({ success: true });
-          });
+
+          req.session.userid = result.rows[0].userid; // store the userid for session verification
+          console.log("User logged in with userID:", req.session.userid);
+          console.log("Session set:", req.session);
+          console.log("Response headers:", res.getHeaders());
+          return res.json({ success: true }); // return success as true to frontend
         } else {
-          res.status(401).json({ success: false });
+          res.status(401).json({ success: false }); // return success as false to frontend
         }
       });
+    } else {
+      res.status(401).json({ success: false }); // return success as false for user not found
     }
   } catch (e) {
     console.log("Unable to intiate login:", e);
