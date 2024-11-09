@@ -12,6 +12,8 @@ const port = 3000;
 const saltRounds = 10;
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   cors({
     origin: "https://spontaneous-axolotl-120710.netlify.app",
@@ -106,21 +108,10 @@ app.post("/login", async (req, res) => {
           console.error("Session save error:", err);
           return res.status(500).json({ success: false });
         }
+        console.log("Session saved successfully:", req.session);
         res.json({success : true});
 
       });
-
-      // bcrypt.compare(password, storedHashedPassword, (err, same) => {
-      //   if (same) {
-      //     req.session.userid = result.rows[0].userid; // store the userid for session verification
-      //     console.log("User logged in with userID:", req.session.userid);
-      //     console.log("Session set:", req.session);
-      //     console.log("Response headers:", res.getHeaders());
-      //     return res.json({ success: true }); // return success as true to frontend
-      //   } else {
-      //     res.status(401).json({ success: false }); // return success as false to frontend
-      //   }
-      // });
     } else {
       res.status(401).json({ success: false }); // return success as false for user not found
     }
