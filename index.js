@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import pg from "pg";
 import PgSession from "connect-pg-simple";
-import bcrypt, { hash } from "bcrypt";
+import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import session from "express-session";
 import axios from "axios";
@@ -37,7 +37,12 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, sameSite: "none" }, // set to false if using http(local env) and not https, else true for prod https
+    cookie: {
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    }, // set to false if using http(local env) and not https, else true for prod https
   })
 );
 
@@ -87,23 +92,41 @@ app.post("/login", async (req, res) => {
     if (result.rows.length > 0) {
       const storedHashedPassword = result.rows[0].password;
 
-      bcrypt.compare(password, storedHashedPassword, (err, same) => {
-        if (same) {
+      const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
 
-          req.session.userid = result.rows[0].userid; // store the userid for session verification
-          console.log("User logged in with userID:", req.session.userid);
-          console.log("Session set:", req.session);
-          console.log("Response headers:", res.getHeaders());
-          return res.json({ success: true }); // return success as true to frontend
-        } else {
-          res.status(401).json({ success: false }); // return success as false to frontend
+      if(!passwordMatch){
+        // password incorrect
+        return res.status(401).json({ success: false }); // return success as false to frontend
+      }
+      // password correct then setup session
+      req.session.userid = result.rows[0].userid;
+
+      req.session.save(err => {
+        if(err){
+          console.error("Session save error:", err);
+          return res.status(500).json({ success: false });
         }
+        res.json({success : true});
+
       });
+
+      // bcrypt.compare(password, storedHashedPassword, (err, same) => {
+      //   if (same) {
+      //     req.session.userid = result.rows[0].userid; // store the userid for session verification
+      //     console.log("User logged in with userID:", req.session.userid);
+      //     console.log("Session set:", req.session);
+      //     console.log("Response headers:", res.getHeaders());
+      //     return res.json({ success: true }); // return success as true to frontend
+      //   } else {
+      //     res.status(401).json({ success: false }); // return success as false to frontend
+      //   }
+      // });
     } else {
       res.status(401).json({ success: false }); // return success as false for user not found
     }
   } catch (e) {
     console.log("Unable to intiate login:", e);
+    res.status(500).json({ success: false });
   }
 });
 
