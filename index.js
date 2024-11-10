@@ -12,7 +12,7 @@ const port = 3000;
 const saltRounds = 10;
 const app = express();
 
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); // added this as railway runs the server on reverse proxy
 
 app.use(
   cors({
